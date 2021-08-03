@@ -30,7 +30,7 @@ source /cvmfs/sft.cern.ch/lcg/etc/hadoop-confext/hadoop-swan-setconf.sh analytix
 ```
 
 
-Then,
+Then, use:
 
 ```
 kinit
@@ -52,6 +52,8 @@ hdfs dfs -mkdir /hdfs/user/UserName/testFolder
 
 # Connect with hadoop from lxplus
 
+These commands are used to get connected directly to the /hdfs space, but problems can occur.
+
 ```
 ssh it-hadoop-client
 
@@ -60,6 +62,9 @@ kinit
 
 
 # Download of Muon-POG code and Spark connection from it
+
+The optimal way to get a connection and to install the code:
+
 
 ```
 git clone https://gitlab.cern.ch/cms-muonPOG/spark_tnp.git
