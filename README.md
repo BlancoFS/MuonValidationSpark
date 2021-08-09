@@ -61,7 +61,7 @@ kinit
 ```
 
 
-# Download of Muon-POG code and Spark connection from it
+# Download Muon-POG code and connect to Spark from it
 
 The optimal way to get a connection and to install the code:
 
