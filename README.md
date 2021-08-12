@@ -77,7 +77,50 @@ kinit
 ```
 
 
+# How to generate distributions
 
+
+The code is developed in the context of the Muon-POG spark code, so, as in the case of efficiencies, it reads the configuration file and plot the ratio and no ratio plots of the one dimentional variables initialized in the section "binVariables" of the configuration.json file.
+
+To run the code, two different options:
+
+## Produce Data/MC distributions for a full era:
+
+```
+./tnp_fitter.py compare particle probe resonance era configs/muon_example.json --baseDir ./example
+```
+
+For example:
+
+```
+./tnp_fitter.py compare muon generalTracks Z Run2018_UL configs/muon_example.json --baseDir ./example
+```
+
+## Produce distributions comparing two specific suberas:
+
+Two options, compare Data or MC datasets from the same era or from different eras. In the first case:
+
+```
+./tnp_fitter.py compare particle probe resonance era configs/muon_example.json --baseDir ./example --subera1 SubEra1 --subera2 SubEra2
+```
+
+For example:
+
+```
+./tnp_fitter.py compare muon generalTracks Z Run2018_UL configs/muon_example.json --baseDir ./example --subera1 Run2018A --subera2 DY_madgraph
+```
+
+In the second case, from two different eras:
+
+```
+./tnp_fitter.py compare particle probe resonance era1 configs/muon_example.json --baseDir ./example --subera1 SubEra1 --subera2 SubEra2 --era2 Era2
+```
+
+For example:
+
+```
+./tnp_fitter.py compare muon generalTracks Z Run2018_UL configs/muon_example.json --baseDir ./example --subera1 Run2018A --subera2 DY_madgraph --era2 Run2016_UL
+```
 
 
 
