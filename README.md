@@ -1,10 +1,10 @@
 # Instructions to run the validation code on Spark cluster
 
 
-The Apache Spark cluster is a powerful set of machines that is used to run jobs on data stored in Hadoop. The Spark components work as a Cloud in the sense that you can connect them in an interactive way or via unix. The interactive way is the easiest one, [Swan Projects](https://swan002.cern.ch), so notebooks can be runned there to develope and test code. In the other option, a connection should be made via a lxplus machine.
+The Apache Spark cluster is a powerful framework that is used for big data processing of data stored in Hadoop. The Spark components work as a Cloud in the sense that you can connect to them in an interactive way via Swan (Jupyter notebook) or via shell. The interactive way is the easiest one, [Swan Projects](https://swan002.cern.ch), so notebooks can be runned there to develope and test code. In the other hand, a connection should be made via a lxplus machine.
 
 
-In both cases it's necessary to request acces to the Spark cluster and Hadoop space system before starting. This is done in the [link](https://hadoop-user-guide.web.cern.ch/getstart/access.html).
+In both cases it's necessary to request acces to the Spark cluster and Hadoop space system before starting. This can be done using the [link](https://hadoop-user-guide.web.cern.ch/getstart/access.html).
 
 
 # Start a session with Swan
@@ -61,7 +61,7 @@ kinit
 ```
 
 
-# Download Muon-POG code and connect to Spark from it
+# Connection with the Muon validation code (This is our main way)
 
 The optimal way to get a connection and to install the code:
 
