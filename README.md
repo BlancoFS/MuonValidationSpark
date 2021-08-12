@@ -1,4 +1,4 @@
-# Instructions to run the validation code on Spark cluster
+# Instructions to run the validation code with the Spark cluster
 
 
 The Apache Spark cluster is a powerful framework that is used for big data processing of data stored in Hadoop. The Spark components work as a Cloud in the sense that you can connect to them in an interactive way via Swan (Jupyter notebook) or via shell. The interactive way is the easiest one, [Swan Projects](https://swan002.cern.ch), so notebooks can be runned there to develope and test code. In the other hand, a connection should be made via a lxplus machine.
