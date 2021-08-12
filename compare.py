@@ -87,21 +87,7 @@ def run_files(particle, probe, resonance, era, subEra, config, spark):
         
     # Weight data and MC with the PileUp
     weightedDF = get_weighted_dataframe(tagsDF, doGen, resonance, era, subEra, shift='Nominal')
-    
-    
-    #if doGen:
-    #    print("")
-    #else:
-    #    new_def = {}
-    #    new_def['genWeight'] = '1.0'
-    #    for d in new_def:
-    #        tagsDF = tagsDF.withColumn(d, F.expr(new_def[d]))
-    
-    
-    
-    #binning = config['binning']
-    #variables = config['variables']
-    #binVariables = config['binVariables']
+
     
     binning = config.binning()
     variables = config.variables()
@@ -247,35 +233,12 @@ def compare(particle, probe, resonance, era, config, **kwargs):
             elif 'JPsi_pythia8' in subEra:
                 use_MC = True
                 JPsi_peak = True
-                
-        #if subEra == 'ALL':
-        #    
-        #    use_Data = True
-        #    use_MC   = True
-        #    
-        #    if bySubEraAlso:
-        #        subEras = get_allowed_sub_eras(resonance, era)
-        #    else:
-        #        subEras = get_data_mc_sub_eras(resonance, era)
-        #else:
-        #    if subEra in ['DY_madgraph', 'DY_powheg', 'JPsi_pythia8']:
-        #        use_MC = True
-        #    else:
-        #        use_Data = True
-        #    
-        #    subEras = []
-        #    subEras.append(subEra)
-        
+     
         
         
         for subEra in subEras:
             realized[subEra] = run_files(particle, probe, resonance, era, subEra, config, spark)
             
-            
-            
-        #binning = config['binning']
-        #variables = config['variables']
-        #binVariables = config['binVariables']
         
         binning = config.binning()
         variables = config.variables()
@@ -324,9 +287,6 @@ def compare(particle, probe, resonance, era, config, **kwargs):
                             continue
                         else:
                             lumi = lumi + registry.luminosity(particle, probe, resonance, era, subEra)
-                            print("\n")
-                            print("The lumi for the " + subEra + " subera is " + str(registry.luminosity(particle, probe, resonance, era, subEra)))
-                            print("\n")
                 else:
                     lumi = -1
                     
@@ -492,12 +452,7 @@ def compare(particle, probe, resonance, era, config, **kwargs):
                 if use_Data:
                     hist.Draw("E1 SAME")
                 else:
-                    hist.Draw("E1")
-
-
-                #plotPath = os.path.join(plotDir, h)                                                                                                                                                       
-                #rcanvas.SetLogy()                                                                                                                                                                         
-                #rcanvas.SetGrid()                                                                                                                                                                         
+                    hist.Draw("E1")                                                                                                                                                                        
 
                 max1 = hist.GetMaximum()
                 max2 = hist_mc.GetMaximum()
@@ -603,10 +558,6 @@ def compare(particle, probe, resonance, era, config, **kwargs):
         realized[_subera1] = run_files(particle, probe, resonance, era, _subera1, config, spark)
         realized[_subera2] = run_files(particle, probe, resonance, _era2, _subera2, config, spark)
 
-
-        #binning = config['binning']
-        #variables = config['variables']
-        #binVariables = config['binVariables']
 
         binning = config.binning()
         variables = config.variables()
@@ -722,10 +673,6 @@ def compare(particle, probe, resonance, era, config, **kwargs):
                     hist_2.Draw("HIST")
                     hist.Draw("E1 SAME")
                 
-    
-                #plotPath = os.path.join(plotDir, h)
-                #canvas.SetLogy()
-                #canvas.SetGrid()
                 
                 max1 = hist.GetMaximum()
                 max2 = hist_2.GetMaximum()
@@ -838,10 +785,7 @@ def compare(particle, probe, resonance, era, config, **kwargs):
                     hist_2.Scale(hist.Integral()/hist_2.Integral())
                     hist_2.Draw("HIST")
                     hist.Draw("E1 SAME")
-
-                #plotPath = os.path.join(plotDir, h)                                                                                                                                                       
-                #rcanvas.SetLogy()                                                                                                                                                                         
-                #rcanvas.SetGrid()                                                                                                                                                                         
+                                                                                                                                                                       
 
                 max1 = hist.GetMaximum()
                 max2 = hist_2.GetMaximum()
