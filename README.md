@@ -133,14 +133,4 @@ cp -r ./example/plots/muon/generalTracks/Z/Run2018_UL/* /eos/user/u/username/www
 cd /eos/user/u/username/www/some_directory/
 
 find . -type d -exec cp index.php {} \;
-
-
-
-
-
-
-
-
-
-
-
+```
