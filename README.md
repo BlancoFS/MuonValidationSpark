@@ -122,6 +122,24 @@ For example:
 ./tnp_fitter.py compare muon generalTracks Z Run2018_UL configs/muon_example.json --baseDir ./example --subera1 Run2018A --subera2 DY_madgraph --era2 Run2016_UL
 ```
 
+Once the plots have been generated:
+
+```
+cp -r ./BaseDir/plots/particle/probe/resonance/era/* /eos/user/u/username/www/some_directory/
+
+cp -r ./example/plots/muon/generalTracks/Z/Run2018_UL/* /eos/user/u/username/www/some_directory/
+
+
+cd /eos/user/u/username/www/some_directory/
+
+find . -type d -exec cp index.php {} \;
+
+
+
+
+
+
+
 
 
 
