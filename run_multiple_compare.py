@@ -96,9 +96,6 @@ def compare_multiple(particle, probe, resonance, era, config, **kwargs):
 
         queue = 'queue 1'
         
-        flavour = 'longlunch'
-
-        
         output = 'OUTPUT/job_'+ muon_ID + '.$(ClusterId).$(ProcId).out'
         error = 'OUTPUT/job_'+ muon_ID + '.$(ClusterId).$(ProcId).err' 
         log = 'OUTPUT/job_'+ muon_ID + '.$(ClusterId).$(ProcId).log' 
@@ -111,14 +108,12 @@ transfer_input_files = {files}
 output      = {output}
 error       = {error}
 log         = {log}
-JobFlavour = "{flavour}"
 {queue}'''.format(
             arguments=arguments,
             files=','.join(files),
             output=output,
             error=error,
             log=log,
-            flavour=flavour,
             queue=queue,)
         
         configpath = 'condor_' + muon_ID + '.sub'
