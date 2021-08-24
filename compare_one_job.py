@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from __future__ import print_function
 import os
 import glob
@@ -29,6 +30,8 @@ import ctypes
 import ROOT
 import tdrstyle
 import CMS_lumi
+
+from config import Configuration
 
 from dataset_allowed_definitions import get_allowed_sub_eras, get_data_mc_sub_eras
 
@@ -118,7 +121,7 @@ def run_files(particle, probe, resonance, era, subEra, config, spark, muon_ID):
 
 
 
-def compare_one(particle, probe, resonance, era, config, muon_ID, **kwargs):
+def compare_one(particle, probe, resonance, era, config_name, muon_ID, _baseDir, _subera1, _subera2, _era2):
     
 
     _useLocalSpark = False
@@ -162,11 +165,7 @@ def compare_one(particle, probe, resonance, era, config, muon_ID, **kwargs):
     print(sc.getConf().toDebugString())
 
     
-    _baseDir = kwargs.pop('baseDir', '')
-    _subera1 = kwargs.pop('subera1', '')
-    _subera2 = kwargs.pop('subera2', '')
-    _era2    = kwargs.pop('era2', '')
-
+    config = Configuration(config_name)
 
     if _era2 == '':
         _era2 = era
@@ -999,3 +998,12 @@ def compare_one(particle, probe, resonance, era, config, muon_ID, **kwargs):
 
                 
     spark.stop()
+    
+    
+if __name__ == "__main__":
+    argv = sys.argv[1:]
+    compare_one(argv)
+    status = main()
+    sys.exit(status)
+  
+    
