@@ -115,7 +115,7 @@ def add_common_compare(parser):
                         help='Introduce second subera')
     parser.add_argument('--era2', default='',
                         help='Introduce de second era, if needed')
-    parser.add_argument('--condor_create', action='store_true',
+    parser.add_argument('--condor_submit', action='store_true',
                         help='Prepare condor submit script')
 
 def add_common_particle(parser):
@@ -320,7 +320,7 @@ def main(argv=None):
 
     elif args.command == 'compare':
         from compare import compare
-        if args.condor_create == True:
+        if args.condor_submit == True:
             from run_multiple_compare import compare_multiple
             compare_multiple(
                 args.particle,
