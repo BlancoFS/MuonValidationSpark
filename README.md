@@ -122,6 +122,27 @@ For example:
 ./tnp_fitter.py compare muon generalTracks Z Run2018_UL configs/muon_example.json --baseDir ./example --subera1 Run2018A --subera2 DY_madgraph --era2 Run2016_UL
 ```
 
+## Submit work to condor
+
+In case of having to produce plots for a lot of muon IDs or RECOs, the code can spend a lot of time processing the parquet files one by one for each efficiency. This fact can also occur if you want to draw histograms for much variables. In that case, an option can be added to compute the histograms for each efficiency separately, i.e. the work is parallelized as a funtion of each muon type.
+
+
+Add to the command line:
+
+```
+--condor_submit
+```
+
+For example:
+
+```
+./tnp_fitter.py compare particle probe resonance era configs/muon_example.json --baseDir ./example --condor_create
+```
+
+
+
+## Final steps
+
 Once the plots have been generated:
 
 ```
