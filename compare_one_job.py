@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import itertools
 
-#import uproot
+import uproot
 
 from pyspark.ml.feature import Bucketizer
 from pyspark.sql import SparkSession
@@ -18,8 +18,6 @@ from scipy.stats import expon
 from scipy.special import wofz, erfc
 
 from muon_definitions import *
-
-from registry import registry
 
 import importlib.util
 import sys
@@ -37,23 +35,118 @@ from dataset_allowed_definitions import get_allowed_sub_eras, get_data_mc_sub_er
 
 
 
+# Get Pile Up. 
+# Modified from muon_definitions.py to be able to run it from condor. Pile Up files are passed to condor as input files so paths are different.
 
-def run_files(particle, probe, resonance, era, subEra, config, spark, muon_ID):
-    
-    useParquet = True
-    
-    # Select parquet files
-    
-    if useParquet:
-        fnames = list(registry.parquet(
-            particle, probe, resonance, era, subEra))
-    else:
-        fnames = registry.root(particle, probe, resonance, era, subEra)
-        # Assume path in registry is already correct, no need for redirector
-        # fnames = ['root://eoscms.cern.ch/'+f for f in fnames]
-        fnames = [f for f in fnames]
+def get_pileup_condor(resonance, era, subEra):
+   '''
+   Get the pileup distribution scalefactors to apply to simulation
+   for a given era.
+   '''
+   # get the pileup
+   dataPileup = {
+       # Note: for now use ReReco version of pileup
+       # TODO: need to redo splitting by 2016 B-F/F-H
+       'Run2016_UL_HIPM': 'Run2016.root',
+       'Run2016_UL': 'Run2016.root',
+       'Run2017_UL': 'Run2017.root',
+       'Run2018_UL': 'Run2018.root',
+       'Run2016': 'Run2016.root',
+       'Run2017': 'Run2017.root',
+       'Run2018': 'Run2018.root'
+   }
+   mcPileup = {
+       # TODO: do the two eras have different profiles?
+       'Run2016_UL_HIPM': 'Run2016_UL.root',
+       'Run2016_UL': 'Run2016_UL.root',
+       'Run2017_UL': 'Run2017_UL.root',
+       'Run2018_UL': 'Run2018_UL.root',
+       'Run2016': 'Run2016.root',
+       'Run2017': 'Run2017.root',
+       'Run2018': 'Run2018.root'
+   }
+   # get absolute path
+   baseDir = os.path.dirname(__file__)
+   dataPileup = {k: os.path.join(baseDir, dataPileup[k]) for k in dataPileup}
+   mcPileup = {k: os.path.join(baseDir, mcPileup[k]) for k in mcPileup}
+   with uproot.open(dataPileup[era]) as f:
+       data_edges = f['pileup'].edges
+       data_pileup = f['pileup'].values
+       data_pileup /= sum(data_pileup)
+   with uproot.open(mcPileup[era]) as f:
+       mc_edges = f['pileup'].edges
+       mc_pileup = f['pileup'].values
+       mc_pileup /= sum(mc_pileup)
+   pileup_edges = data_edges if len(data_edges) < len(mc_edges) else mc_edges
+   pileup_ratio = [d/m if m else 1.0 for d, m in zip(
+       data_pileup[:len(pileup_edges)-1], mc_pileup[:len(pileup_edges)-1])]
 
+   return pileup_ratio, pileup_edges
+
+
+# Get weighted dataframe
+# Modified to use the pile up files from condor
+# From muon_definitions.py
+
+def get_weighted_dataframe_condor(df, doGen, resonance, era, subEra, shift=None):
+   '''
+   Produces a dataframe with a weight and weight2 column
+   with weight corresponding to:
+       1 for data
+   or
+       pileup for mc
+   The optional shift parameter allows for a different
+   systematic shift to the weights
+   '''
+   # TODO: implement systematic shifts in the weight such as PDF, pileup, etc.
+   # get the pileup
+   pileup_ratio, pileup_edges = get_pileup_condor(resonance, era, subEra)
+
+   # build the weights (pileup for MC)
+   # TODO: if there is a weight column (ie, gen weight) get that first
+   if doGen:
+       pileupMap = {e: r for e, r in zip(pileup_edges[:-1], pileup_ratio)}
+       mapping_expr = F.create_map(
+           [F.lit(x) for x in itertools.chain(*pileupMap.items())])
+       # M.Oh: temporary solution for missing true PU branch in the new ntuples
+       if 'pair_truePileUp' in df.columns:
+           weightedDF = df.withColumn(
+               'PUweight', mapping_expr.getItem(F.round('pair_truePileUp')))
+       elif 'nTrueInteractions' in df.columns:
+           weightedDF = df.withColumn(
+               'PUweight', mapping_expr.getItem(F.round('nTrueInteractions')))
+       elif 'nVertices' in df.columns:
+           weightedDF = df.withColumn(
+               'PUweight', mapping_expr.getItem(F.col('nVertices')))
+       else:
+           weightedDF = df.withColumn('PUweight', F.lit(1.0))
+       # apply gen weights
+       if 'genWeight' in weightedDF.columns:
+           weightedDF = weightedDF.withColumn('genWeightSign', F.signum('genWeight'))
+           weightedDF = weightedDF.withColumn('weight', F.col('genWeightSign') * F.col('PUweight'))
+       elif 'pair_genWeight' in weightedDF.columns:
+           weightedDF = weightedDF.withColumn('genWeightSign', F.signum('pair_genWeight'))
+           weightedDF = weightedDF.withColumn('weight', F.col('genWeightSign') * F.col('PUweight'))
+       else:
+           weightedDF = weightedDF.withColumn('weight', F.col('PUweight'))
+   else:
+       weightedDF = df.withColumn('weight', F.lit(1.0))
+   weightedDF = weightedDF.withColumn(
+       'weight2', F.col('weight') * F.col('weight'))
+
+   return weightedDF
+
+
+
+
+#
+# Run_files. It gets the parquet files, process it and generates pandas dataframes from binned ones using spark
+#
+
+def run_files(particle, probe, resonance, era, subEra, config, spark, muon_ID, fnames):
     
+
+        
     # Load parquet files (or root)
     print('Loading parquet files:', fnames)
     if isinstance(fnames, list):
@@ -86,7 +179,7 @@ def run_files(particle, probe, resonance, era, subEra, config, spark, muon_ID):
             
         
     # Weight data and MC with the PileUp
-    weightedDF = get_weighted_dataframe(tagsDF, doGen, resonance, era, subEra, shift='Nominal')
+    weightedDF = get_weighted_dataframe_condor(tagsDF, doGen, resonance, era, subEra, shift='Nominal')
         
     binning = config.binning()
     variables = config.variables()
@@ -119,10 +212,14 @@ def run_files(particle, probe, resonance, era, subEra, config, spark, muon_ID):
     return realized
 
 
+#
+# Compare_one. Initialized spark, call run_files and draw and save the histograms.
+#
 
-
-def compare_one(particle, probe, resonance, era, config_name, muon_ID, _baseDir, _subera1, _subera2, _era2):
+def compare_one(particle, probe, resonance, era, config_name, muon_ID, _baseDir, _subera1, _subera2, _era2, lumi, fnames):
     
+
+   # Start spark
 
     _useLocalSpark = False
     useParquet = True
@@ -164,11 +261,18 @@ def compare_one(particle, probe, resonance, era, config_name, muon_ID, _baseDir,
     sc = spark.sparkContext
     print(sc.getConf().toDebugString())
 
-    
-    config = Configuration(config_name)
 
-    if _era2 == '':
+    config_real = config_name.split('/')[1]
+
+    config = Configuration(config_real)
+
+    if _era2 == 'era2':
         _era2 = era
+
+    if _subera1 == 'subera1':
+        _subera1 = ''
+    if _subera2 == 'subera2':
+        _subera2 = ''
 
 
     _FullEra = False
@@ -208,23 +312,14 @@ def compare_one(particle, probe, resonance, era, config_name, muon_ID, _baseDir,
     
         
 
-    muon_IDs = []
     efficiencies = config.efficiencies()
-
-    if len(efficiencies) == 1:
-        muon_IDs.append(efficiencies[0][0])
-    else:
-        for eff_pair in efficiencies:
-            if len(eff_pair) == 1:
-                muon_IDs.append(eff_pair[0])
-            else:
-                muon_IDs.append(eff_pair[0])
-                muon_IDs.append(eff_pair[1])
-
-    muon_IDs = list(dict.fromkeys(muon_IDs))
 
     realized = {}
     
+
+    ### luminosity 
+    lumi = float(lumi)
+
 
     if _FullEra:
         
@@ -247,35 +342,17 @@ def compare_one(particle, probe, resonance, era, config_name, muon_ID, _baseDir,
             elif 'JPsi_pythia8' in subEra:
                 use_MC = True
                 JPsi_peak = True
-                
-        #if subEra == 'ALL':
-        #    
-        #    use_Data = True
-        #    use_MC   = True
-        #    
-        #    if bySubEraAlso:
-        #        subEras = get_allowed_sub_eras(resonance, era)
-        #    else:
-        #        subEras = get_data_mc_sub_eras(resonance, era)
-        #else:
-        #    if subEra in ['DY_madgraph', 'DY_powheg', 'JPsi_pythia8']:
-        #        use_MC = True
-        #    else:
-        #        use_Data = True
-        #    
-        #    subEras = []
-        #    subEras.append(subEra)
        
             
         for subEra in subEras:
-            realized[subEra] = run_files(particle, probe, resonance, era, subEra, config, spark, muon_ID)
+            key_name = ''
+            for fname in fnames:
+                if subEra in fname:
+                    key_name = fname
+
+                    realized[subEra] = run_files(particle, probe, resonance, era, subEra, config, spark, muon_ID, key_name) # Dictionary with pandas dataframes for each subEra
         
-            
-        
-        #binning = config['binning']
-        #variables = config['variables']
-        #binVariables = config['binVariables']
-        
+   
         binning = config.binning()
         variables = config.variables()
         binVariables = config.binVariables()
@@ -285,6 +362,8 @@ def compare_one(particle, probe, resonance, era, config_name, muon_ID, _baseDir,
         tdrstyle.setTDRStyle()
         
         
+        # For each variable, draw and save a plot
+
         for binVar in binVariables:
             
             if len(binVar) == 1:
@@ -314,19 +393,8 @@ def compare_one(particle, probe, resonance, era, config_name, muon_ID, _baseDir,
                     else:
                         for i in df.index:
                             fill_array[i] = fill_array[i] + float(values[i])
-                        
-                        
-                lumi = 0
-                if use_Data:
-                    for subEra in subEras:
-                        if (era.split('_')[0] not in subEra) and (era not in subEra):
-                            continue
-                        else:
-                            lumi = lumi + registry.luminosity(particle, probe, resonance, era, subEra)
-                else:
-                    lumi = -1
                     
-                
+                           
                 #
                 # Initialize histogram
                 #
@@ -595,14 +663,24 @@ def compare_one(particle, probe, resonance, era, config_name, muon_ID, _baseDir,
                 continue
                 
     else:
-            
-        realized[_subera1] = run_files(particle, probe, resonance, era, _subera1, config, spark, muon_ID)
-        realized[_subera2] = run_files(particle, probe, resonance, _era2, _subera2, config, spark, muon_ID)
-        
-        
-        #binning = config['binning']
-        #variables = config['variables']
-        #binVariables = config['binVariables']
+       
+        print(fnames)
+        if _subera1 in fnames[0]:
+           key1 = fnames[0]
+           key2 = fnames[1]
+        elif _subera1 in fnames[1]:
+           key1 = fnames[1]
+           key2 = fnames[0]
+        else:
+           print("Error: suberas not in path")
+           
+        realized[_subera1] = run_files(particle, probe, resonance, era, _subera1, config, spark, muon_ID, key1)
+        realized[_subera2] = run_files(particle, probe, resonance, _era2, _subera2, config, spark, muon_ID, key2)
+
+
+        subera1_isMC = _subera1 in ['DY_madgraph', 'DY_powheg', 'JPsi_pythia8']
+        subera2_isMC = _subera2 in ['DY_madgraph', 'DY_powheg', 'JPsi_pythia8']
+      
         
         binning = config.binning()
         variables = config.variables()
@@ -642,24 +720,7 @@ def compare_one(particle, probe, resonance, era, config_name, muon_ID, _baseDir,
                     else:
                         for i in df.index:
                             fill_array_2[i] = fill_array_2[i] + float(values[i])
-        
                             
-                # Luminosity
-                
-                lumi = 0
-                
-                subera1_isMC = _subera1 in ['DY_madgraph', 'DY_powheg', 'JPsi_pythia8']
-                subera2_isMC = _subera2 in ['DY_madgraph', 'DY_powheg', 'JPsi_pythia8']
-                
-                if subera1_isMC and subera2_isMC:
-                    lumi = -1
-                elif subera1_isMC:
-                    lumi = registry.luminosity(particle, probe, resonance, _era2, _subera2)
-                elif subera2_isMC:
-                    lumi = registry.luminosity(particle, probe, resonance, era, _subera1)
-                else:
-                    lumi = registry.luminosity(particle, probe, resonance, _era2, _subera2) + registry.luminosity(particle, probe, resonance, era, _subera1)
-                    
                     
                 #
                 # Initialize histogram
@@ -790,20 +851,20 @@ def compare_one(particle, probe, resonance, era, config_name, muon_ID, _baseDir,
                 CMS_lumi.CMS_lumi(canvas, 4, 11)
                 
                 # Draw    
-                # Saved as file: ./baseDir/plots/muon/generalTracks/Z/Run2018_UL/muon_pt_Run2018A_vs_Run2018B.png 
+                # Saved as file: ./baseDir/plots/muon/generalTracks/Z/Run2018A_vs_Run2018B/TightID/muon_pt_Run2018A_vs_Run2018B.png 
                 
-                directory = _baseDir + "/plots/" + particle + "/" + probe + "/" + resonance + "/" + era + "/" + _subera1 + "_vs_" + _subera2 + "/" + muon_ID + "/"
+                directory = _baseDir + "/plots/" + particle + "/" + probe + "/" + resonance + "/" + _subera1 + "_vs_" + _subera2 + "/" + muon_ID + "/"
                 
                 if not os.path.exists(directory):
                     os.makedirs(directory)
                     
                 canvas.Draw()        
-                canvas.SaveAs(_baseDir + "/plots/" + particle + "/" + probe + "/" + resonance + "/" +
-                              era + "/" + _subera1 + "_vs_" + _subera2 + "/" + muon_ID + "/c_" + var_name + "_" + _subera1 + "_vs_" + _subera2 + "_muon_val.png")  #Save .png file 
+                canvas.SaveAs(_baseDir + "/plots/" + particle + "/" + probe + "/" + resonance + "/" 
+                              + _subera1 + "_vs_" + _subera2 + "/" + muon_ID + "/c_" + var_name + "_" + _subera1 + "_vs_" + _subera2 + "_muon_val.png")  #Save .png file 
             
                 print("\n")
-                print(str(var_name) + " distribution saved at: " + _baseDir + "/plots/" + particle + "/" + probe + "/" + resonance + "/" +
-                      era + "/" + _subera1 + "_vs_" + _subera2 + "/" + muon_ID  + "/c_" + var_name + "_" + _subera1 + "_vs_" + _subera2 + "_muon_val.png")
+                print(str(var_name) + " distribution saved at: " + _baseDir + "/plots/" + particle + "/" + probe + "/" + resonance
+                      + "/" + _subera1 + "_vs_" + _subera2 + "/" + muon_ID  + "/c_" + var_name + "_" + _subera1 + "_vs_" + _subera2 + "_muon_val.png")
 
                 
                 canvas.SetLogy()
@@ -811,10 +872,10 @@ def compare_one(particle, probe, resonance, era, config_name, muon_ID, _baseDir,
                 canvas.Draw()
                 
                 canvas.SaveAs(_baseDir + "/plots/" + particle + "/" + probe + "/" + resonance + "/" +
-                              era + "/" + _subera1 + "_vs_" + _subera2 + "/" + muon_ID  + "/log_c_" + var_name + "_" + _subera1 + "_vs_" + _subera2 + "_muon_val.png")
+                              _subera1 + "_vs_" + _subera2 + "/" + muon_ID  + "/log_c_" + var_name + "_" + _subera1 + "_vs_" + _subera2 + "_muon_val.png")
                 
                 print(str(var_name) + " distribution saved at: " + _baseDir + "/plots/" + particle + "/" + probe + "/" + resonance + "/" +
-                      era + "/" + _subera1 + "_vs_" + _subera2 + "/" + muon_ID + "/log_c_" + var_name + "_" + _subera1 + "_vs_" + _subera2 + "_muon_val.png")
+                      _subera1 + "_vs_" + _subera2 + "/" + muon_ID + "/log_c_" + var_name + "_" + _subera1 + "_vs_" + _subera2 + "_muon_val.png")
                 
                 print("\n")
 
@@ -969,12 +1030,12 @@ def compare_one(particle, probe, resonance, era, config_name, muon_ID, _baseDir,
             
                 
                 rcanvas.Draw()
-                rcanvas.SaveAs(_baseDir + "/plots/" + particle + "/" + probe + "/" + resonance + "/" + era + "/" + _subera1 + "_vs_" + _subera2 + "/" + muon_ID  
+                rcanvas.SaveAs(_baseDir + "/plots/" + particle + "/" + probe + "/" + resonance + "/" + _subera1 + "_vs_" + _subera2 + "/" + muon_ID  
                                + "/c_ratio_" + var_name + "_" + _subera1 + "_vs_" + _subera2 + "_muon_val.png")  #Save .png file
                 
                 print("\n")
                 print(str(var_name) + " distribution saved at: " + _baseDir + "/plots/" + particle + "/" + probe + "/" + resonance + "/" +
-                      era + "/" + _subera1 + "_vs_" + _subera2 + "/" + muon_ID  + "/c_ratio_" + var_name + "_" + _subera1 + "_vs_" + _subera2 + "_muon_val.png")
+                      _subera1 + "_vs_" + _subera2 + "/" + muon_ID  + "/c_ratio_" + var_name + "_" + _subera1 + "_vs_" + _subera2 + "_muon_val.png")
                 
                 
                 rcanvas.cd(1)
@@ -983,11 +1044,11 @@ def compare_one(particle, probe, resonance, era, config_name, muon_ID, _baseDir,
                 rcanvas.Update()
                 rcanvas.Draw()
                 
-                rcanvas.SaveAs(_baseDir + "/plots/" + particle + "/" + probe + "/" + resonance + "/" + era + "/" + _subera1 + "_vs_" + _subera2 + "/" +  muon_ID  + "/log_c_ratio_" 
+                rcanvas.SaveAs(_baseDir + "/plots/" + particle + "/" + probe + "/" + resonance + "/" + _subera1 + "_vs_" + _subera2 + "/" +  muon_ID  + "/log_c_ratio_" 
                                + var_name + "_" + _subera1 + "_vs_" + _subera2 + "_muon_val.png")
                 
                 print(str(var_name) + " distribution saved at: " + _baseDir + "/plots/" + particle + "/" + probe + "/" + resonance + "/" +
-                      era + "/" + _subera1 + "_vs_" + _subera2 + "/" + muon_ID  + "/log_c_ratio_" + var_name + "_" + _subera1 + "_vs_" + _subera2 + "_muon_val.png")
+                      _subera1 + "_vs_" + _subera2 + "/" + muon_ID  + "/log_c_ratio_" + var_name + "_" + _subera1 + "_vs_" + _subera2 + "_muon_val.png")
                 
                 print("\n")
 
@@ -1002,7 +1063,7 @@ def compare_one(particle, probe, resonance, era, config_name, muon_ID, _baseDir,
     
 if __name__ == "__main__":
     argv = sys.argv[1:]
-    compare_one(argv)
-    status = main()
-    sys.exit(status)
-  
+    fnames = argv[11:]
+    print(argv)
+    compare_one(argv[0], argv[1], argv[2], argv[3], argv[4], argv[5], argv[6], argv[7], argv[8], argv[9], argv[10], fnames)
+    
