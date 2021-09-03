@@ -136,7 +136,7 @@ Add to the command line:
 For example:
 
 ```
-./tnp_fitter.py compare particle probe resonance era configs/muon_example.json --baseDir ./example --condor_create
+./tnp_fitter.py compare particle probe resonance era configs/muon_example.json --baseDir ./example --condor_submit
 ```
 
 
