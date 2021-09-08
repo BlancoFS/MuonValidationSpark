@@ -165,7 +165,7 @@ def get_data_pileup(era, era2):
    with uproot.open(dataPileup[era]) as f:
        data1_edges = f['pileup'].edges
        data1_pileup = f['pileup'].values
-       data1_pileup /= sum(data_pileup)
+       data1_pileup /= sum(data1_pileup)
    with uproot.open(dataPileup[era2]) as f:
        data2_edges = f['pileup'].edges
        data2_pileup = f['pileup'].values
