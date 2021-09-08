@@ -762,7 +762,7 @@ def compare_one(particle, probe, resonance, era, config_name, muon_ID, _baseDir,
            
         realized[_subera1] = run_files(particle, probe, resonance, era, _subera1, config, spark, muon_ID, False, '', key1)
       
-        if !subera1_isMC and !subera2_isMC:
+        if not subera1_isMC and not subera2_isMC:
             realized[_subera2] = run_files(particle, probe, resonance, _era2, _subera2, config, spark, muon_ID, True, era, key2) 
         else:
             realized[_subera2] = run_files(particle, probe, resonance, _era2, _subera2, config, spark, muon_ID, False, '', key2)
