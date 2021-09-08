@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import itertools
 
-#import uproot
+import uproot
 
 from pyspark.ml.feature import Bucketizer
 from pyspark.sql import SparkSession
@@ -33,9 +33,90 @@ import CMS_lumi
 from dataset_allowed_definitions import get_allowed_sub_eras, get_data_mc_sub_eras
 
 
+# Get Pile Up ratio for Data/Data plots
+
+def get_data_pileup(era, era2):
+   '''
+   Get the pileup distribution scalefactors to apply to simulation
+   for a given era.
+   '''
+   # get the pileup
+   dataPileup = {
+       # Note: for now use ReReco version of pileup
+       # TODO: need to redo splitting by 2016 B-F/F-H
+       'Run2016_UL_HIPM': 'pileup/data/Run2016.root',
+       'Run2016_UL': 'pileup/data/Run2016.root',
+       'Run2017_UL': 'pileup/data/Run2017.root',
+       'Run2018_UL': 'pileup/data/Run2018.root',
+       'Run2016': 'pileup/data/Run2016.root',
+       'Run2017': 'pileup/data/Run2017.root',
+       'Run2018': 'pileup/data/Run2018.root'
+   }
+
+   # get absolute path
+   baseDir = os.path.dirname(__file__)
+   dataPileup = {k: os.path.join(baseDir, dataPileup[k]) for k in dataPileup}
+   with uproot.open(dataPileup[era]) as f:
+       data1_edges = f['pileup'].edges
+       data1_pileup = f['pileup'].values
+       data1_pileup /= sum(data_pileup)
+   with uproot.open(dataPileup[era2]) as f:
+       data2_edges = f['pileup'].edges
+       data2_pileup = f['pileup'].values
+       data2_pileup /= sum(data2_pileup)
+   pileup_edges = data1_edges if len(data1_edges) < len(data2_edges) else data2_edges
+   pileup_ratio = [d1/d2 if d2 else 1.0 for d1, d2 in zip(
+       data1_pileup[:len(pileup_edges)-1], data2_pileup[:len(pileup_edges)-1])]
+
+   return pileup_ratio, pileup_edges
 
 
-def run_files(particle, probe, resonance, era, subEra, config, spark, muon_ID):
+# Get weighted dataframe
+# Modified to use the pile up files from condor
+# From muon_definitions.py
+
+def get_weighted_data(df, era, era2, shift=None):
+   '''
+   Produces a dataframe with a weight and weight2 column
+   with weight corresponding to:
+       1 for data
+   or
+       pileup for mc
+   The optional shift parameter allows for a different
+   systematic shift to the weights
+   '''
+   # TODO: implement systematic shifts in the weight such as PDF, pileup, etc.
+   # get the pileup
+   pileup_ratio, pileup_edges = get_data_pileup(era, era2)
+
+   # build the weights (pileup for Data2)
+   # TODO: if there is a weight column (ie, gen weight) get that first
+
+   pileupMap = {e: r for e, r in zip(pileup_edges[:-1], pileup_ratio)}
+   mapping_expr = F.create_map(
+       [F.lit(x) for x in itertools.chain(*pileupMap.items())])
+   # M.Oh: temporary solution for missing true PU branch in the new ntuples
+   if 'pair_truePileUp' in df.columns:
+       weightedDF = df.withColumn(
+           'PUweight', mapping_expr.getItem(F.round('pair_truePileUp')))
+   elif 'nTrueInteractions' in df.columns:
+       weightedDF = df.withColumn(
+           'PUweight', mapping_expr.getItem(F.round('nTrueInteractions')))
+   elif 'nVertices' in df.columns:
+       weightedDF = df.withColumn(
+           'PUweight', mapping_expr.getItem(F.col('nVertices')))
+   else:
+       weightedDF = df.withColumn('PUweight', F.lit(1.0))
+         
+
+   weightedDF = weightedDF.withColumn('weight', F.col('PUweight'))
+   weightedDF = weightedDF.withColumn('weight2', F.col('weight') * F.col('weight'))
+
+   return weightedDF
+
+
+
+def run_files(particle, probe, resonance, era, subEra, config, spark, muon_ID, doDataRew, era1):
     
     useParquet = True
     
@@ -83,7 +164,10 @@ def run_files(particle, probe, resonance, era, subEra, config, spark, muon_ID):
             
         
     # Weight data and MC with the PileUp
-    weightedDF = get_weighted_dataframe(tagsDF, doGen, resonance, era, subEra, shift='Nominal')
+    if doDataRew:
+       weightedDF = get_weighted_data(tagsDF, era1, era, shift='Nominal')
+    else:
+       weightedDF = get_weighted_dataframe(tagsDF, doGen, resonance, era, subEra, shift='Nominal')
         
     binning = config.binning()
     variables = config.variables()
@@ -270,7 +354,7 @@ def compare(particle, probe, resonance, era, config, **kwargs):
         for muon_ID in muon_IDs:
             
             for subEra in subEras:
-                realized[subEra] = run_files(particle, probe, resonance, era, subEra, config, spark, muon_ID)
+                realized[subEra] = run_files(particle, probe, resonance, era, subEra, config, spark, muon_ID, False, '')
             
                 
             
@@ -601,8 +685,14 @@ def compare(particle, probe, resonance, era, config, **kwargs):
 
         for muon_ID in muon_IDs:
             
-            realized[_subera1] = run_files(particle, probe, resonance, era, _subera1, config, spark, muon_ID)
-            realized[_subera2] = run_files(particle, probe, resonance, _era2, _subera2, config, spark, muon_ID)
+            subera1_isMC = _subera1 in ['DY_madgraph', 'DY_powheg', 'JPsi_pythia8']
+            subera2_isMC = _subera2 in ['DY_madgraph', 'DY_powheg', 'JPsi_pythia8']
+            
+            realized[_subera1] = run_files(particle, probe, resonance, era, _subera1, config, spark, muon_ID, False, '')
+            if !subera1_isMC and !subera2_isMC:
+                realized[_subera2] = run_files(particle, probe, resonance, _era2, _subera2, config, spark, muon_ID, True, era)
+            else:
+                realized[_subera2] = run_files(particle, probe, resonance, _era2, _subera2, config, spark, muon_ID, False, '')
             
             
             #binning = config['binning']
@@ -653,8 +743,6 @@ def compare(particle, probe, resonance, era, config, **kwargs):
                     
                     lumi = 0
                     
-                    subera1_isMC = _subera1 in ['DY_madgraph', 'DY_powheg', 'JPsi_pythia8']
-                    subera2_isMC = _subera2 in ['DY_madgraph', 'DY_powheg', 'JPsi_pythia8']
                     
                     if subera1_isMC and subera2_isMC:
                         lumi = -1
