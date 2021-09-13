@@ -36,14 +36,14 @@ from dataset_allowed_definitions import get_allowed_sub_eras, get_data_mc_sub_er
 # Get Pile Up ratio for Data/Data plots
 
 def get_data_pileup(era, era2):
+   '''                                                                                                                                                                                                      
+   Get the pileup distribution scalefactors to apply to simulation                                                                                                                                          
+   for a given era.                                                                                                                                                                                         
    '''
-   Get the pileup distribution scalefactors to apply to simulation
-   for a given era.
-   '''
-   # get the pileup
+   # get the pileup                                                                                                                                                                                         
    dataPileup = {
-       # Note: for now use ReReco version of pileup
-       # TODO: need to redo splitting by 2016 B-F/F-H
+       # Note: for now use ReReco version of pileup                                                                                                                                                         
+       # TODO: need to redo splitting by 2016 B-F/F-H                                                                                                                                                       
        'Run2016_UL_HIPM': 'pileup/data/Run2016.root',
        'Run2016_UL': 'pileup/data/Run2016.root',
        'Run2017_UL': 'pileup/data/Run2017.root',
@@ -53,20 +53,22 @@ def get_data_pileup(era, era2):
        'Run2018': 'pileup/data/Run2018.root'
    }
 
-   # get absolute path
+   # get absolute path                                                                                                                                                                                      
    baseDir = os.path.dirname(__file__)
    dataPileup = {k: os.path.join(baseDir, dataPileup[k]) for k in dataPileup}
    with uproot.open(dataPileup[era]) as f:
        data1_edges = f['pileup'].edges
        data1_pileup = f['pileup'].values
-       data1_pileup /= sum(data_pileup)
+       data1_pileup /= sum(data1_pileup)
    with uproot.open(dataPileup[era2]) as f:
        data2_edges = f['pileup'].edges
        data2_pileup = f['pileup'].values
        data2_pileup /= sum(data2_pileup)
+
    pileup_edges = data1_edges if len(data1_edges) < len(data2_edges) else data2_edges
    pileup_ratio = [d1/d2 if d2 else 1.0 for d1, d2 in zip(
        data1_pileup[:len(pileup_edges)-1], data2_pileup[:len(pileup_edges)-1])]
+
 
    return pileup_ratio, pileup_edges
 
@@ -74,40 +76,32 @@ def get_data_pileup(era, era2):
 # Get weighted dataframe
 # Modified to use the pile up files from condor
 # From muon_definitions.py
+# By this moment, nTrueInteractions and nPUInteractions not implemented in the ntuples (-1 value for all events), nVertices is used instead.
 
 def get_weighted_data(df, era, era2, shift=None):
-   '''
-   Produces a dataframe with a weight and weight2 column
-   with weight corresponding to:
-       1 for data
-   or
-       pileup for mc
-   The optional shift parameter allows for a different
-   systematic shift to the weights
-   '''
-   # TODO: implement systematic shifts in the weight such as PDF, pileup, etc.
-   # get the pileup
+                                                                                                                            
+   # get the pileup                                                                                                                                                                                         
    pileup_ratio, pileup_edges = get_data_pileup(era, era2)
 
-   # build the weights (pileup for Data2)
-   # TODO: if there is a weight column (ie, gen weight) get that first
+   # build the weights (pileup for Data2)                                                                                                                                               
 
    pileupMap = {e: r for e, r in zip(pileup_edges[:-1], pileup_ratio)}
    mapping_expr = F.create_map(
        [F.lit(x) for x in itertools.chain(*pileupMap.items())])
-   # M.Oh: temporary solution for missing true PU branch in the new ntuples
+   
+   # M.Oh: temporary solution for missing true PU branch in the new ntuples                                                                                                                                 
    if 'pair_truePileUp' in df.columns:
-       weightedDF = df.withColumn(
-           'PUweight', mapping_expr.getItem(F.round('pair_truePileUp')))
-   elif 'nTrueInteractions' in df.columns:
-       weightedDF = df.withColumn(
-           'PUweight', mapping_expr.getItem(F.round('nTrueInteractions')))
+      weightedDF = df.withColumn('PUweight', mapping_expr.getItem(F.round('pair_truePileUp')))
+   #elif 'nTrueInteractions' in df.columns:                                                                                                                                                                 
+   #   weightedDF = df.withColumn('PUweight', mapping_expr.getItem(F.round('nTrueInteractions')))                                                                                                           
+   #   test = weightedDF.withColumn('PU', F.round('nTrueInteractions'))                                                                                                                                     
+   #   test = test.select("PU")                                                                                                                                                                             
+   #   test.show()                                                                                                                                                                                          
    elif 'nVertices' in df.columns:
-       weightedDF = df.withColumn(
-           'PUweight', mapping_expr.getItem(F.col('nVertices')))
+      weightedDF = df.withColumn('PUweight', mapping_expr.getItem(F.col('nVertices')))
    else:
-       weightedDF = df.withColumn('PUweight', F.lit(1.0))
-         
+      weightedDF = df.withColumn('PUweight', F.lit(1.0))
+
 
    weightedDF = weightedDF.withColumn('weight', F.col('PUweight'))
    weightedDF = weightedDF.withColumn('weight2', F.col('weight') * F.col('weight'))
