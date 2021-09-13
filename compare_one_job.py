@@ -149,13 +149,13 @@ def get_data_pileup(era, era2):
    dataPileup = {
        # Note: for now use ReReco version of pileup                                                                                                                                                         
        # TODO: need to redo splitting by 2016 B-F/F-H                                                                                                                                                       
-       'Run2016_UL_HIPM': 'pileup/data/Run2016.root',
-       'Run2016_UL': 'pileup/data/Run2016.root',
-       'Run2017_UL': 'pileup/data/Run2017.root',
-       'Run2018_UL': 'pileup/data/Run2018.root',
-       'Run2016': 'pileup/data/Run2016.root',
-       'Run2017': 'pileup/data/Run2017.root',
-       'Run2018': 'pileup/data/Run2018.root'
+       'Run2016_UL_HIPM': 'Run2016.root',
+       'Run2016_UL': 'Run2016.root',
+       'Run2017_UL': 'Run2017.root',
+       'Run2018_UL': 'Run2018.root',
+       'Run2016': 'Run2016.root',
+       'Run2017': 'Run2017.root',
+       'Run2018': 'Run2018.root'
    }
 
    # get absolute path                                                                                                                                                                                      
