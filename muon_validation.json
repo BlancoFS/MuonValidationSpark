@@ -50,10 +50,7 @@
 	"tuneP_muonHits": "np.linspace(0, 20, 21)",
 	"trackerLayers": "np.linspace(0, 20, 21)",
 	"pixelLayers": "np.linspace(0, 5, 6)",
-	"miniIso": "np.linspace(0, 0.4, 30)",
-	"miniIsoCharged": "np.linspace(0, 0.4, 30)",
-	"miniIsoPhotons": "np.linspace(0, 0.4, 30)",
-	"miniIsoNeutrals": "np.linspace(0, 0.4, 30)"  
+	"miniIso": "np.linspace(0, 0.4, 30)"
     },
     "variables": {
         "pt": {"variable": "probe_pt", "pretty": "p_{T} (GeV)"},
@@ -81,10 +78,7 @@
 	"tuneP_muonHits" : {"variable": "probe_tuneP_muonHits", "pretty": "TuneP muon hits"},
 	"trackerLayers" : {"variable": "probe_trackerLayers", "pretty": "Tracker Layers"},
 	"pixelLayers" : {"variable": "probe_pixelLayers", "pretty": "Pixel layers"},
-	"miniIso": {"variable": "probe_miniIso", "pretty": "mini Iso"},
-	"miniIsoCharged": {"variable": "probe_miniIsoCharged", "pretty": "mini Iso (Charged)"},
-	"miniIsoPhotons": {"variable": "probe_miniIsoPhotons", "pretty": "mini Iso (Photons)"},
-	"miniIsoNeutrals": {"variable": "probe_miniIsoNeutrals", "pretty": "mini Iso (Neutrals)"},    
+	"miniIso": {"variable": "probe_miniIso", "pretty": "mini Iso"}   
     },
     "fitVariable": "mass",
     "fitVariableGen": "mcMass",
@@ -114,10 +108,7 @@
 	["tuneP_muonHits"],
 	["trackerLayers"],
 	["pixelLayers"],
-	["miniIso"],
-	["miniIsoCharged"],
-	["miniIsoPhotons"],
-	["miniIsoNeutrals"]    
+	["miniIso"]
     ],
     "shifts": {
     },
