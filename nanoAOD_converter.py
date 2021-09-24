@@ -93,7 +93,7 @@ def run_convert():
 
     resonance = 'Z'
     era = 'Run2016_UL'
-    subEra = 'DY_madgraph'
+    subEra = 'Run2016B'
 
 
     #####################
@@ -103,7 +103,7 @@ def run_convert():
     fileout = os.path.join("hdfs://analytix/user/sblancof/root/muon", resonance, era,'nanoAOD', subEra)
 
     print("hdfs dfs -cp root://eosuser/" + filein + " " + fileout)
-    #os.system("hdfs dfs -cp root://eosuser/" + filein + " " + fileout)
+    os.system("hdfs dfs -cp root://eosuser/" + filein + " " + fileout)
 
 
     #fnames = ['root://eosuser'+f for f in fnamesMap.get(resonance,{}).get(era,{}).get(subEra,[])]
@@ -166,11 +166,6 @@ def run_convert():
         else:
             rootfiles.write.mode('append').parquet(outname)
 
-        #except:
-        #    print("Exception not catched")
-        #    print("The following root file is empty:")
-        #    print(current)
-
 
     #print("Temporal parquet file written at: ", outname_tmp)
 
@@ -182,6 +177,14 @@ def run_convert():
     
     print("\n")
 
+    
+    ##### WORK IN PROGRESS ######
+    #
+    #  CODE TO SPLIT ARRAY VARIABLES
+    #
+    #  By now, too low and inefficient, not used
+    #
+    
     #print("Splitting array variables: ")
 
     #rootfiles = spark.read.parquet(outname)
