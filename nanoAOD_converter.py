@@ -71,6 +71,8 @@ def run_convert():
 
     ### DEFINITIONS #####
 
+    # Path to root files in eos, they are then copied to hdfs and, after the parquet file is created, they are removed from hdfs again.
+    
     baseDir = '/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/'
 
     files_local = {
@@ -173,7 +175,7 @@ def run_convert():
     
     print("Removing root files from Hadoop")
 
-    os.system("hdfs dfs -rm " + fileout + "/*")
+    os.system("hdfs dfs -rm  -skip Trash" + fileout + "/*")
     
     print("\n")
 
