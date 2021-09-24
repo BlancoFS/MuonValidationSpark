@@ -175,7 +175,7 @@ def run_convert():
     
     print("Removing root files from Hadoop")
 
-    os.system("hdfs dfs -rm  -skip Trash" + fileout + "/*")
+    os.system("hdfs dfs -rm  -skipTrash" + fileout + "/*")
     
     print("\n")
 
