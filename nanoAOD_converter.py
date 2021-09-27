@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import itertools
 import subprocess
+import sys
 
 import uproot
 
@@ -17,7 +18,14 @@ from pyspark.sql import functions as F
 from pyspark.sql.functions import pandas_udf, PandasUDFType
 
 
-def run_convert():
+def run_convert(argv=None):
+
+    if argv is None:
+        argv = sys.argv[1:]
+
+    resonance = argv[0]
+    era = argv[1]
+    subEra = argv[2]
 
 
     _useLocalSpark = False
@@ -89,11 +97,6 @@ def run_convert():
         'JPsi':{
         },
     }
-
-
-    resonance = 'Z'
-    era = 'Run2016_UL'
-    subEra = 'Run2016F'
 
 
     #####################
