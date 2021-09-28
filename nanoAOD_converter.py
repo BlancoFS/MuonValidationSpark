@@ -176,14 +176,6 @@ def run_convert(argv=None):
         else:
             rootfiles.write.mode('append').parquet(outname)
 
-        #except:
-        #    print("Exception not catched")
-        #    print("The following root file is empty:")
-        #    print(current)
-
-
-    #print("Temporal parquet file written at: ", outname_tmp)
-
     print("\n")
     
     print("Removing root files from Hadoop")
@@ -192,41 +184,8 @@ def run_convert(argv=None):
     
     print("\n")
 
-    #print("Splitting array variables: ")
-
-    #rootfiles = spark.read.parquet(outname)
-
     print("Final parquet file written at: ", outname)
-    '''
-    rootfiles.count()
 
-    for i in variables_val:
-        
-        tmp1 = rootfiles.withColumn(i, F.col(i).getItem(0)).select(i)
-        tmp2 = rootfiles.withColumn(i, F.col(i).getItem(1)).select(i)
-        #tmp3 = rootfiles.withColumn(i, F.col(i).getItem(2)).select(i)
-        #tmp4 = rootfiles.withColumn(i, F.col(i).getItem(3)).select(i)
-        
-        tmp = tmp1.union(tmp2)
-        #tmp = tmp.union(tmp3)
-        #tmp = tmp.union(tmp4)
-        
-        rootfiles = rootfiles.drop(i)
-        
-        rootfiles = rootfiles.join(tmp)
-        
-        print("Variable " + i + " done")
-
-    print(rootfiles)
-
-    rootfiles.write.parquet(outname)
-
-    print("Deleting temporal files")
-
-    os.system("hdfs dfs -rm -r " + outname_tmp)
-
-    print("Final parquet file written at: ", outname)
-    '''
     spark.stop()
 
 if __name__ == "__main__":
