@@ -93,6 +93,21 @@ def run_convert(argv=None):
                 'Run2016H': 'Run2016_UL2016_nAODv8_Full2016v8/DataTandP__addTnPMuon/nanoLatino_SingleMuon_Run2016H*.root',
                 'DY_madgraph': 'Summer20UL16_106x_nAODv8_noHIPM_Full2016v8/MCTandP__addTnPMuon/nanoLatino_DYJetsToLL_M-50__part*.root', 
             },
+            'Run2017_UL': {
+                'Run2017B': 'Run2017_UL2017_nAODv8_Full2017v8/DataTandP__addTnPMuon/nanoLatino_SingleMuon_Run2017B-UL2017-v1__part*.root',
+                'Run2017C': 'Run2017_UL2017_nAODv8_Full2017v8/DataTandP__addTnPMuon/nanoLatino_SingleMuon_Run2017C-UL2017-v1__part*.root',
+                'Run2017D': 'Run2017_UL2017_nAODv8_Full2017v8/DataTandP__addTnPMuon/nanoLatino_SingleMuon_Run2017D-UL2017-v1__part*.root',
+                'Run2017E': 'Run2017_UL2017_nAODv8_Full2017v8/DataTandP__addTnPMuon/nanoLatino_SingleMuon_Run2017E-UL2017-v2__part*.root',
+                'Run2017F': 'Run2017_UL2017_nAODv8_Full2017v8/DataTandP__addTnPMuon/nanoLatino_SingleMuon_Run2017F-UL2017-v2__part*.root',
+                'DY_madgraph': 'Summer20UL17_106x_nAODv8_Full2017v8/MCTandP__addTnPMuon/nanoLatino_DYJetsToLL_M-50*root',
+            },
+            'Run2018_UL': {
+                'Run2018A': 'Run2018_UL2018_nAODv8_Full2018v8/DataTandP__addTnPMuon/nanoLatino_SingleMuon_Run2018A-UL2018-v1__part*.root',
+                'Run2018B': 'Run2018_UL2018_nAODv8_Full2018v8/DataTandP__addTnPMuon/nanoLatino_SingleMuon_Run2018B-UL2018-v1__part*.root',
+                'Run2018C': 'Run2018_UL2018_nAODv8_Full2018v8/DataTandP__addTnPMuon/nanoLatino_SingleMuon_Run2018C-UL2018-v1__part*.root',
+                'Run2018D': 'Run2018_UL2018_nAODv8_Full2018v8/DataTandP__addTnPMuon/nanoLatino_SingleMuon_Run2018D-UL2018-v1__part*.root',
+                'DY_madgraph': 'Summer20UL18_106x_nAODv8_Full2018v8/MCTandP__addTnPMuon/nanoLatino_DYJetsToLL_M-50*.root',
+            },
         },
         'JPsi':{
         },
