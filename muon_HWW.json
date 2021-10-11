@@ -1,0 +1,95 @@
+{
+    "efficiencies": [
+	["TightHWW", "TrackerMuons"],
+	["TightHWW_ISO", "TightHWW"],
+	["TightHWW_tth_ISO", "TightHWW_ISO"]
+    ],
+    "selection": "Tag_pt>29 and abs(Tag_eta)<2.4 and Tag_pfRelIso04_all<0.2 and Tag_dxy<0.2 and abs(Tag_dz)<0.5",
+    "definitions": {
+        "genTracks": "((Probe_pt<20 and Probe_mass<30) or (Probe_pt>20))",
+        "isolatedGenTracks": "Probe_pfRelIso04_all < 0.4",
+        "TrackerMuons": "Probe_isTracker == 1",
+        "GlobalMuons": "Probe_isGlobal == 1",
+        "LooseID": "Probe_looseId == 1",
+        "MediumID": "Probe_mediumId == 1",
+        "MediumPromptID": "Probe_mediumPromptId == 1",
+        "TightID": "Probe_tightId == 1",
+        "SoftID": "Probe_softId == 1",
+        "LooseRelIso": "Probe_pfRelIso04_all < 0.25",
+        "TightRelIso": "Probe_pfRelIso04_all < 0.15",
+	"IsoMu27": "HLT_IsoMu27 == 1",
+	"abseta": "abs(Probe_eta)",
+	"mass": "TnP_mass",
+	"mcMass": "TnP_mass",
+	"pair_mass": "TnP_mass",
+	"pt": "Probe_pt",
+	"eta": "Probe_eta",
+	"nVertices": "PV_npvs",
+	"tag_pt": "Tag_pt",
+	"tag_eta": "Tag_eta",
+	"tag_IsoMu27": "1",
+	"pair_probeMultiplicity": "1",
+	"tag_combRelIsoPF04dBeta": "Tag_pfRelIso04_all",
+	"TightHWW_ISO": "Probe_tightId == 1 and Probe_pt > 10 and abs(Probe_eta) < 2.4 and ((Probe_dxy < 0.01 and Probe_pt < 20) or (Probe_dxy < 0.02 and Probe_pt > 20)) and Probe_dz < 0.1 and Probe_pfRelIso04_all<0.15",
+	"TightHWW_tth_ISO": "Probe_tightId == 1 and Probe_pt > 10 and abs(Probe_eta) < 2.4 and ((Probe_dxy < 0.01 and Probe_pt < 20) or (Probe_dxy < 0.02 and Probe_pt > 20)) and Probe_dz < 0.1  and Probe_mvaTTH > 0.8 and Probe_pfRelIso04_all<0.15",
+	"TightHWW": "Probe_tightId == 1 and Probe_pt > 10 and abs(Probe_eta) < 2.4 and ((Probe_dxy < 0.01 and Probe_pt < 20) or (Probe_dxy < 0.02 and Probe_pt > 20)) and Probe_dz < 0.1"
+    },
+    "binning": {
+        "pt": [10, 15, 20, 25, 30, 40, 60, 100, 200],
+        "abseta": [0, 0.9, 1.2, 2.1, 2.4],
+        "eta": [-2.4, -2.1, -1.6, -1.2, -0.8, -0.3, -0.2, 0.0, 0.2, 0.3, 0.8, 1.2, 1.6, 2.1, 2.4],
+        "nvtx": "np.array(range(10, 85, 5))",
+        "mass": "np.array(range(60*4, 140*4+1)) * 0.25",
+        "mcMass": "np.array(range(60*4, 140*4+1)) * 0.25"
+    },
+    "variables": {
+        "pt": {"variable": "pt", "pretty": "p_{T} (GeV)"},
+        "abseta": {"variable": "abseta", "pretty": "|#eta|"},
+        "eta": {"variable": "eta", "pretty": "#eta"},
+        "nvtx": {"variable": "PV_npvs", "pretty": "Number of primary vertices"},
+        "mass": {"variable": "mass", "pretty": "m(#mu#mu) (GeV)"},
+        "mcMass": {"variable": "mcMass", "pretty": "m(#mu#mu) (GeV)"}
+    },
+    "fitVariable": "mass",
+    "fitVariableGen": "mcMass",
+    "binVariables": [
+	["eta", "pt"],
+	["eta"],
+	["pt"]
+    ],
+    "shifts": {
+        "TagIsoUp": {
+            "selection": "Tag_pt>29 and IsoMu27 and abs(Tag_eta)<2.4 and Tag_pfRelIso04_all<0.2 and abs(Probe_dz)<0.5"
+        },
+        "TagIsoDown": {
+            "selection": "Tag_pt>29 and IsoMu27 and abs(Tag_eta)<2.4 and Tag_pfRelIso04_all<0.1 and abs(Probe_dz)<0.5"
+        }
+    },
+    "fitShifts": {
+        "AltSig": {"fitType": "AltSig"},
+        "AltBkg": {"fitType": "AltBkg"},
+        "NominalOld": {"fitType": "NominalOld"},
+        "AltSigOld": {"fitType": "AltSigOld"},
+        "tagIsoUp": {"shiftType": "tagIsoUp", "inType": "TagIsoUp"},
+        "tagIsoDown": {"shiftType": "tagIsoDown", "inType": "TagIsoDown"},
+        "massBinUp": {"shiftType": "massBinUp"},
+        "massBinDown": {"shiftType": "massBinDown"},
+        "massRangeUp": {"shiftType": "massRangeUp"},
+        "massRangeDown": {"shiftType": "massRangeDown"}
+    },
+    "systematics" : {
+        "SF": {
+            "fitTypes": ["AltSig"],
+            "shiftTypes": ["tagIso", "massBin", "massRange"]
+        },
+        "dataEff": {
+            "fitTypes": ["AltSig"],
+            "shiftTypes": ["tagIso", "massBin", "massRange"]
+        },
+        "mcEff": {
+            "fitTypes": [],
+            "shiftTypes": ["tagIso", "massRange"]
+        }
+    }
+}
+
